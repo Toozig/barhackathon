@@ -22,7 +22,7 @@ class BD:
         :param d: D
         :param x0: initial state
         :param force_f: function that calculate the forces that work on the proteins
-        :param dim: the dimension of the rectangle that we looking at
+        :param dim: the dimension of the rectangle that we looking at (2 or 3)
         """
         self.__n = n
         self.__kt = kt
@@ -47,13 +47,21 @@ class BD:
         """
         for i in vec:
             if self.__dim == 3:
-                if not ((x_0 <= vec[0] <= x_1) or (y_0 <= vec[1] <= y_1) or (z_0 <= vec[2] <= z_1)):
+                if not ((x_0 <= i[0] <= x_1) or (y_0 <= i[1] <= y_1) or (z_0 <= i[2] <= z_1)):
                     return False
             elif self.__dim == 2:
-                if not ((x_0 <= vec[0] <= x_1) or (y_0 <= vec[1] <= y_1)):
+                if not ((x_0 <= i[0] <= x_1) or (y_0 <= i[1] <= y_1)):
                     return False
         return True
 
+    def __build_distance_matrix(self, protein_vec):
+        real_res = []
+        for i in range(len(protein_vec)):
+            res = []
+            for j in range(len(protein_vec)):
+                res.append(np.linalg.norm(protein_vec[i]-protein_vec[j]))
+            real_res.append(res)
+        return real_res
 
     def BD_algorithm(self):
         """
@@ -75,7 +83,8 @@ class BD:
                 return
             r = np.random.normal(0, 1, 2)
             # result[round(cur[0]), round(cur[1])] += 1
-            addition = self.__dt * self.__force_func(cur) + r * np.sqrt(BD_FACTOR * self.__kt * self.__dt)
+            m = self.__build_distance_matrix(cur)
+            addition = self.__dt * self.__force_func(m) + r * np.sqrt(BD_FACTOR * self.__kt * self.__dt)
             temp = cur + addition
 
             # todo : try to write the function again
@@ -91,19 +100,19 @@ class BD:
         return result
 
 
-def get_cmdline_parser():
-    parser = argparse.ArgumentParser(
-        description='Run BD on a n configuration space.')
-    parser.add_argument('n', type=int, default=1000, nargs='?',
-                        help='number of iterations of MCMC optimization')
-    parser.add_argument('kT', type=float, default=1.0, nargs='?',
-                        help='kT - the denominator for the metropolis criterion'
-                             ' (Boltzmann constant times temperature)')
-    return parser
+# def get_cmdline_parser():
+#     parser = argparse.ArgumentParser(description='Run BD on a n configuration space.')
+#     parser.add_argument('n', type=int, default=1000, nargs='?',
+#                         help='number of iterations of MCMC optimization')
+#     parser.add_argument('kT', type=float, default=1.0, nargs='?',
+#                         help='kT - the denominator for the metropolis criterion'
+#                              ' (Boltzmann constant times temperature)')
+#     return parser
 
 
 if __name__ == '__main__':
-    parser = get_cmdline_parser().parse_args()
+    print("hi")
+    # parser = get_cmdline_parser().parse_args()
     # plt.figure()
     # for i in [0.1, 1]:
     #     result = BD_algorithm(1000000, i)
