@@ -14,7 +14,7 @@ MAX_DEPTH = 5
 
 
 class BD:
-    def __init__(self, n, kt, dt, d, x0, force_f, dim):
+    def __init__(self, n, kt, dt, x0,dim):
         """
         :param n: iteration number
         :param kt: kT
@@ -27,9 +27,8 @@ class BD:
         self.__n = n
         self.__kt = kt
         self.__dt = dt
-        self.__d = d
         self.__x0 = x0
-        self.__force_func = force_f
+        self.__force_func = None
         self.__dim = dim
         self.__r = 0
 
