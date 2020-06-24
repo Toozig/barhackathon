@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from BD import *
+import itertools
 
 
 class MCHC:
@@ -100,6 +101,15 @@ class MCHC:
         return result
 
 
+def findsubsets(s, n):
+    base = list(itertools.combinations(s, n))
+    level = []
+    for pair in base:
+        temp = [i for i in base if i[0] != pair[0] and i[0] != pair[1] and i[1] != pair[0] and i[1] != pair[1]]
+        for j in temp:
+            level.append((pair, j))
+    return level
+
 # def get_cmdline_parser():
 #     parser = argparse.ArgumentParser(
 #         description='Run MCMC on a discrete n x n configuration space.')
@@ -112,7 +122,7 @@ class MCHC:
 #                              ' (Boltzmann constant times temperature)')
 #     return parser
 if __name__ == '__main__':
-    print("hi")
+    print(findsubsets([1, 2, 3, 4], 2))
     # parser = get_cmdline_parser().parse_args()
     # print(mcmc(parser))
 
