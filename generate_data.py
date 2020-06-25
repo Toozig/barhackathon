@@ -1,3 +1,5 @@
+#https://docs.google.com/document/d/19dhv9HE3doeHZAL-hx5jIrQxsNzB1egbFNLy7T8QWZk/edit#
+
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -6,34 +8,6 @@ from ipywidgets import widgets
 
 HIGHEST_NUMBER_OF_MOL = 500
 LOWEST_NUM_OF_MOL = 50
-f_amount = 10
-s_amount = 3
-
-
-frame_amount = widgets.IntSlider(
-    value=10,
-    min=1,
-    max=1000,
-    description='Number of frames in each sample:',
-    disabled=False)
-
-samples_amount = widgets.IntSlider(
-    value=3,
-    min=1,
-    max=110,
-    description='Number of samples:',
-    disabled=False)
-
-g = go.FigureWidget(data=[],
-                    layout=go.Layout(
-                        title=dict(
-                            text='NYC FlightDatabase'
-                        ),
-                        barmode='overlay'
-                    ))
-
-
-container = widgets.HBox(children=[samples_amount, frame_amount])
 
 
 def generate_histogram(amount_of_frames:int) -> (list, int):
@@ -63,36 +37,43 @@ def generate_histogram(amount_of_frames:int) -> (list, int):
         cur_val = val
         result.append(cur_val)
 
-    return result, num_mol
+    return go.Scatter(y=result, x=list(range(amount_of_frames)), name="%i molecules" %num_mol, visible=False)
+
+fig = go.Figure()
+
+for i in range(10):
+    fig.add_trace(generate_histogram(1000))
+
+for i in range(3):
+    fig.data[i].visible = True
+
+steps = []
+for i in range(len(fig.data)):
+    sample = dict(
+        method="update",
+        args=[{"visible": [False] * len(fig.data)},
+              {"title": "Synthetic Data cooling effect (" + str(i) +" Samples)",
+               }],  # layout attribute
+
+    )
+    for j in range(i):
+        sample["args"][0]["visible"][j] = True  # Toggle i'th trace to "visible"
+        steps.append(sample)
 
 
-def generate_scatter(change):
-    res = []
-    fig = go.Figure()
-    if frame_amount.value != f_amount:
-        for i in range(frame_amount.value):
-            res, num_mol = generate_histogram(samples_amount.value)
-            res.append(fig.add_trace(go.Scatter(y=res, x=list(range(samples_amount.value)), mode='lines', name='%i molecules' % num_mol, )))
-        f_amount = frame_amount.value
-        with g.batch_update():
-            g.data = res
+sliders = [dict(
+    active=1,
+    currentvalue={"prefix": "Number of samples: "},
+    steps=steps
 
-    elif samples_amount.value < len(g.data):
-        for i in range(samples_amount.value - len(g.data)):
-            res, num_mol = generate_histogram(frame_amount.value)
-            res.append(fig.add_trace(go.Scatter(y=res, x=list(range(frame_amount.value)), mode='lines', name='%i molecules' %num_mol,)))
+)]
 
-        with g.batch_update():
-            g.data = list(g.data) + res
+fig.update_layout(
+    sliders=sliders
+)
+fig.update_layout(title="Synthetic Data cooling effect",
+                  xaxis_title="Time",
+                  yaxis_title="# connections")
 
-    else:
-        with g.batch_update():
-            g.data = g.data[:samples_amount.value]
-
-
-
-
-frame_amount.observe(generate_scatter, names="value")
-samples_amount.observe(generate_histogram, names='value')
-t = widgets.VBox([container])
-y = 45
+fig.write_html("S_data.html")
+# fig.show()
