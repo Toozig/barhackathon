@@ -3,15 +3,13 @@ import numpy as np
 import pandas as pd
 from BD import *
 from itertools import chain, combinations
+from generate_data import *
 
-
-class MCHC:
-
-    PROTEIN_DICT = {0: "CD28", 1: "CD80", 2: "CD86" , 3: "CTLA-4", 4: "PD-1", 5: "PD-L1", 6: "PD-L2", 7: "IL-2RA",
-                    8: "IL-12R", 9: "IL-2", 10: "IL-12", 11: "empty state"}
-    CONVERT_DICT = {"CD28":0, "CD80":1, "CD86":2, "CTLA-4":3,  "PD-1":4, "PD-L1":5, "PD-L2":6, "IL-2RA":7, "IL-12R":8,
-                    "IL-2":9, "IL-12":10, "empty state":11}
-
+PROTEIN_DICT = {0: "CD28", 1: "CD80", 2: "CD86" , 3: "CTLA-4", 4: "PD-1", 5: "PD-L1", 6: "PD-L2", 7: "IL-2RA",
+                8: "IL-12R", 9: "IL-2", 10: "IL-12", 11: "empty state"}
+CONVERT_DICT = {"CD28":0, "CD80":1, "CD86":2, "CTLA-4":3,  "PD-1":4, "PD-L1":5, "PD-L2":6, "IL-2RA":7, "IL-12R":8,
+                "IL-2":9, "IL-12":10, "empty state":11}
+class MCMC:
 
     def __init__(self, n, kt, m, protein_vec, dt, compare):
         """
@@ -30,18 +28,21 @@ class MCHC:
         self.__compare = compare
         self.__df, self.__protein_dict = self.__read_excel()
         self.__space = self.__create_configuration_space()
-        self.mcmc()
 
 
     def __read_excel(self):
-        df = pd.read_excel("matrix.xlsx")
-        colnames = df.columns
-        col_ind = [colnames.iloc(protein)for protein in self.__protein_vec]
-        filtered = df[col_ind]
-        filtered = filtered.iloc[col_ind]
+        df = pd.read_csv("newMatrix.csv", index_col=0)
+        # colnames = df.columns
+        # col_ind = [np.argwhere([i is in self.__protein_vec for i in colnames])]
+        filtered = df.loc[self.__protein_vec, self.__protein_vec]
+        # filtered = filtered.iloc[col_ind]
+        filtered['empty state'] = 1
         protein_dict = {}
-        for i in range(filtered.shape[0]):
-            protein_dict[i] = filtered.columns[i]
+        for i in range(filtered.shape[0] + 1):
+            if i == filtered.shape[0]:
+                protein_dict[i] = 'empty state'
+            else:
+                protein_dict[i] = filtered.columns[i]
         return filtered, protein_dict
 
 
@@ -68,10 +69,10 @@ class MCHC:
         :return: loss score
         """
         errors = np.asarray([0 for i in range(len(frames))])
-        for frame in frames:
-            for i in range(len(frame)):
-                for j in range(len(i , frame)):
-                    if np.linalg.norm(frame[i] - frame[j]) < 0.1:   #todo
+        for frame in range(len(frames)):
+            for i in range(len(frames[frame])):
+                for j in range(i , len(frames[frame])):
+                    if np.linalg.norm(np.asarray(frames[frame][i]) - np.asarray(frames[frame][j])) < 0.1:   #todo
                         errors[frame] += 1
         err = (np.asarray(self.__compare) - errors) / np.asarray(self.__compare)
         return np.mean(err)
@@ -84,18 +85,17 @@ class MCHC:
         :param c: the initial state
         :return: the loss score
         """
-        bd = BD(10000, self.__kt,  self.__dt, c, 2)
+        bd = BD(10, self.__kt,  self.__dt, c, 2, self.__protein_dict, self.__protein_vec, self.__df)
         res = bd.BD_algorithm()
         return self.__loss(res)
 
     def __get_neighbours(self, c):
-        ''' get up/down/left/right neighbours on an n x n grid with 0-based indices'''
-        temp_mat = np.zeros((self.__n, self.__n))
-        for i in range(self.__dt.shape[0]):
-             # todo : if c is an index
-            temp_mat[i][c] = self.__dt[i][c]
-            temp_mat[c][i] = self.__dt[c][i]
-        return temp_mat
+        """
+
+        :param c:
+        :return:
+        """
+        return self.__space
 
 
     def __create_configuration_space(self):
@@ -107,30 +107,37 @@ class MCHC:
         i = 0
         while i < self.__n:
             if i == 0:
-                configurations.append([11])
+                configurations.append([self.__n])
             elif i == 2:
                 temp = []
                 for protein in range(self.__n):
                     for sec_protein in range(protein, self.__n):
-                        if self.__df[protein][sec_protein] == 1:
+                        if self.__df[self.__protein_dict[protein]][self.__protein_dict[sec_protein]] == 1:
                             temp.append((protein, sec_protein))
                 configurations.append(temp)
             elif i % 2 == 0:
                 temp2 = []
                 for tup in configurations[-1]:
-                    seen = [].extend(tup)
+                    seen = self.__plat_the_tup(tup)
                     for pair in configurations[1]:
                         if pair[0] not in seen and pair[1] not in seen:
                             temp2.append((tup, pair))
                 configurations.append(temp2)
+            i +=1
         result = (lambda l: [item for sublist in l for item in sublist])(configurations)
         return result
 
+    def __plat_the_tup(self, tup):
+        if type(tup[0]) is int:
+            seen = list(tup)
+        else:
+            seen = [x for y in tup for x in y]
+        return seen
 
     def mcmc(self):
         result = [0 for i in range(len(self.__space))]
         # matrix = [(i, j) for j in range(self.__n) for i in range(self.__n)]
-        random_state = self.__space[np.random.randint(len(self.__space))]
+        random_state = np.random.randint(len(self.__space))
         for iter in range(self.__m):
             result[random_state] += 1
             neighbours = self.__get_neighbours(random_state)
@@ -139,6 +146,7 @@ class MCHC:
             p = self.__get_p_accept_metropolis(dE, self.__kt, 1 / len(neighbours), 1 / len(self.__get_neighbours(chosen)))
             random_state = chosen if np.random.binomial(1, p) else random_state
         return result
+
 
 
 def powerset(iterable):
@@ -175,20 +183,25 @@ if __name__ == '__main__':
     # print(findsubsets([1, 2, 3, 4], 2))
     # parser = get_cmdline_parser().parse_args()
     # print(mcmc(parser))
-    l = [1,2,3,4]
-    pairs = list(combinations(l, 2))
-    psets = powerset(pairs)
-    valid = []
-    for pset in psets:
-        already_seen = []
-        add = True
-        for pair in pset:
-            if [x for x in pair if x in already_seen]:
-                add = False
-            already_seen.extend(pair)
+    # l = [1,2,3,4]
+    # pairs = list(combinations(l, 2))
+    # psets = powerset(pairs)
+    # valid = []
+    # for pset in psets:
+    #     already_seen = []
+    #     add = True
+    #     for pair in pset:
+    #         if [x for x in pair if x in already_seen]:
+    #             add = False
+    #         already_seen.extend(pair)
+    #
+    #     if add:
+    #         valid.append(pset)
+    # print(valid)
+    data, n = generate_histogram(10)
+    proteins = [PROTEIN_DICT[i] for i in range(n)]
+    sim = MCMC(n, 1.0, 1000, proteins, 0.1, data)
+    res = sim.mcmc()
 
-        if add:
-            valid.append(pset)
-    print(valid)
 
 
