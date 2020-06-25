@@ -34,7 +34,6 @@ class BD:
         self.__matrix = matrix
         self.__x0 = self.__create_x0(x0)
 
-
     def __create_x0(self, c):
         print(c)
         l = (len(self.__protein_vec))
@@ -138,7 +137,7 @@ class BD:
                     temp[k][0] -= addition[k]
                     temp[k][1] -= addition[k]
                 j += 1
-        return result
+        return result, self.__calculate_bars(result)
 
     def __force_func(self, dist_met):
         distance = self.__matrix
@@ -155,6 +154,21 @@ class BD:
                 new_row.append(x * distance[x_pro][y_pro])
             new_mat.append(new_row)
         return np.array(new_mat).sum(axis=0)
+
+
+    def __calculate_bars(self, frames):
+        errors = np.asarray([0 for i in range(len(frames))])
+        for frame in range(len(frames)):
+            for i in range(len(frames[frame])):
+                for j in range(i, len(frames[frame])):
+                    if i == j:
+                        continue
+                    dist = np.linalg.norm(np.asarray(frames[frame][i]) - np.asarray(frames[frame][j]))
+                    if dist < 5:  # todo
+                        errors[frame] += 1
+        return errors
+
+
 
 # def get_cmdline_parser():
 #     parser = argparse.ArgumentParser(description='Run BD on a n configuration space.')

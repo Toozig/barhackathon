@@ -62,25 +62,16 @@ class MCMC:
         p = np.exp(-dE / self.__kt) * p_backward / p_forward
         return min(p, 1.0)
 
-    def __loss(self, frames):
+    def __loss(self, bars):
         """
         calculate the loss score of the results from BD simulator
         :param frames: the result of BD
         :return: loss score
         """
-        errors = np.asarray([0 for i in range(len(frames))])
-        for frame in range(len(frames)):
-            for i in range(len(frames[frame])):
-                for j in range(i, len(frames[frame])):
-                    if i == j:
-                        continue
-                    dist = np.linalg.norm(np.asarray(frames[frame][i]) - np.asarray(frames[frame][j]))
-                    if  dist < 5:   #todo
-                        errors[frame] += 1
+        errors = bars
         err = np.mean((np.asarray(self.__compare) - errors))
         s = sum(self.__compare)
-        return 1 if s == 0 else err / s
-
+        return 1 if s == 0 else abs(err / s)
 
 
     def __E(self, c):
@@ -90,8 +81,8 @@ class MCMC:
         :return: the loss score
         """
         bd = BD(10, self.__kt,  self.__dt, c, 2, self.__protein_dict, self.__protein_vec, self.__df)
-        res = bd.BD_algorithm()
-        return self.__loss(res)
+        res, bars = bd.BD_algorithm()
+        return self.__loss(bars)
 
     def __get_neighbours(self, c):
         """
@@ -151,8 +142,20 @@ class MCMC:
             r_E = self.__E(random_state)
             dE =  c_E - r_E
             p = self.__get_p_accept_metropolis(dE, 1 / len(neighbours), 1 / len(self.__get_neighbours(chosen)))
-            random_state = chosen if np.random.binomial(1, p) else random_state
-        return result
+            coin = np.random.binomial(1, p)
+            random_state = chosen if coin else random_state
+            conf = self.__space
+            chosen_ind = 0
+            # print("chosen:")
+            # print(chosen)
+            if type(chosen) is not tuple:
+                chosen_ind = 0
+            else:
+                chosen_ind = conf[1:].index(chosen)
+            random_ind = chosen_ind if coin else random_ind
+        best_configuration = self.__space[np.argmax(np.asarray(result))]
+        bd = BD(10, self.__kt,  self.__dt, best_configuration, 2, self.__protein_dict, self.__protein_vec, self.__df)
+        return result, best_configuration, bd.BD_algorithm()
 
 
 
