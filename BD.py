@@ -1,6 +1,7 @@
 import argparse
 import seaborn as sbn
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import numpy as np
 
@@ -14,7 +15,7 @@ MAX_DEPTH = 5
 
 
 class BD:
-    def __init__(self, n, kt, dt, x0,dim):
+    def __init__(self, n, kt, dt, x0, dim, indexs):
         """
         :param n: iteration number
         :param kt: kT
@@ -28,9 +29,9 @@ class BD:
         self.__kt = kt
         self.__dt = dt
         self.__x0 = x0
-        self.__force_func = None
         self.__dim = dim
         self.__r = 0
+        self.__inx = indexs
 
     def __vec_in_rec(self, vec, x_0, y_0, z_0, x_1, y_1, z_1):
         """
@@ -98,6 +99,15 @@ class BD:
 
         return result
 
+    def __force_func(self, dist_met):
+        distance = np.asarray(pd.read_excel("matrix.xlsx"))
+        new_mat = []
+        for i in range(len(dist_met)):
+            new_row = []
+            for j in range(len(i)):
+                new_row.append((1/dist_met[i][j])*distance[self.__inx[i], self.__inx[j]])
+            new_mat.append(new_row)
+        return np.array(new_mat).sum(axis=0)
 
 # def get_cmdline_parser():
 #     parser = argparse.ArgumentParser(description='Run BD on a n configuration space.')
