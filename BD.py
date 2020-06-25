@@ -35,7 +35,11 @@ class BD:
         self.__x0 = self.__create_x0(x0)
 
     def __create_x0(self, c):
-        print(c)
+        """
+        A function that initial coordination for the initial state
+        :param c: the binding state
+        :return: the coordination as np.array
+        """
         l = (len(self.__protein_vec))
         new_x0 = [0] * l
         if c is not tuple:
@@ -149,23 +153,31 @@ class BD:
                 y_pro = self.__inx[j]
                 if dist_met[i,j] != 0:
                     x = 1/ dist_met[i,j]
+                    # x = dist_met[i,j]
                 else:
                     x = 0
-                new_row.append(x * distance[x_pro][y_pro])
+                calc = 1 if distance[x_pro][y_pro] else -1
+                new_row.append(x * calc)
             new_mat.append(new_row)
-        return np.array(new_mat).sum(axis=0)
+        forces = np.array(new_mat).sum(axis=0)
+        return forces
 
 
     def __calculate_bars(self, frames):
         errors = np.asarray([0 for i in range(len(frames))])
+        dd = []
         for frame in range(len(frames)):
+            d = []
             for i in range(len(frames[frame])):
                 for j in range(i, len(frames[frame])):
                     if i == j:
                         continue
                     dist = np.linalg.norm(np.asarray(frames[frame][i]) - np.asarray(frames[frame][j]))
-                    if dist < 5:  # todo
+                    d.append(dist)
+                    if dist < 1:  # todo
                         errors[frame] += 1
+            dd.append(np.mean(d))
+        print(np.mean(dd))
         return errors
 
 
