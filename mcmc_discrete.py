@@ -71,11 +71,15 @@ class MCMC:
         errors = np.asarray([0 for i in range(len(frames))])
         for frame in range(len(frames)):
             for i in range(len(frames[frame])):
-                for j in range(i , len(frames[frame])):
-                    if np.linalg.norm(np.asarray(frames[frame][i]) - np.asarray(frames[frame][j])) < 0.1:   #todo
+                for j in range(i, len(frames[frame])):
+                    if i == j:
+                        continue
+                    dist = np.linalg.norm(np.asarray(frames[frame][i]) - np.asarray(frames[frame][j]))
+                    if  dist < 5:   #todo
                         errors[frame] += 1
-        err = (np.asarray(self.__compare) - errors) / np.asarray(self.__compare)
-        return np.mean(err)
+        err = np.mean((np.asarray(self.__compare) - errors))
+        s = sum(self.__compare)
+        return 1 if s == 0 else err / s
 
 
 
@@ -107,7 +111,7 @@ class MCMC:
         i = 0
         while i < self.__n:
             if i == 0:
-                configurations.append([self.__n])
+                configurations.append([(self.__n)])
             elif i == 2:
                 temp = []
                 for protein in range(self.__n):
@@ -137,13 +141,16 @@ class MCMC:
     def mcmc(self):
         result = [0 for i in range(len(self.__space))]
         # matrix = [(i, j) for j in range(self.__n) for i in range(self.__n)]
-        random_state = np.random.randint(len(self.__space))
+        random_ind = np.random.randint(len(self.__space))
+        random_state = self.__space[random_ind]
         for iter in range(self.__m):
-            result[random_state] += 1
-            neighbours = self.__get_neighbours(random_state)
+            result[random_ind] += 1
+            neighbours = self.__get_neighbours(random_ind)
             chosen = neighbours[np.random.randint(len(neighbours))]
-            dE = self.__E(chosen) - self.__E(random_state)
-            p = self.__get_p_accept_metropolis(dE, self.__kt, 1 / len(neighbours), 1 / len(self.__get_neighbours(chosen)))
+            c_E =  self.__E(chosen)
+            r_E = self.__E(random_state)
+            dE =  c_E - r_E
+            p = self.__get_p_accept_metropolis(dE, 1 / len(neighbours), 1 / len(self.__get_neighbours(chosen)))
             random_state = chosen if np.random.binomial(1, p) else random_state
         return result
 
@@ -202,6 +209,7 @@ if __name__ == '__main__':
     proteins = [PROTEIN_DICT[i] for i in range(n)]
     sim = MCMC(n, 1.0, 1000, proteins, 0.1, data)
     res = sim.mcmc()
+    print(res)
 
 
 

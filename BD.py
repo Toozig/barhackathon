@@ -36,9 +36,12 @@ class BD:
 
 
     def __create_x0(self, c):
+        print(c)
         l = (len(self.__protein_vec))
         new_x0 = [0] * l
-        if type(c[0]) is int:
+        if c is not tuple:
+            pairs = []
+        elif type(c[0]) is int:
             pairs = list(c)
         else:
             pairs = [x for y in c for x in y]
@@ -102,13 +105,15 @@ class BD:
         # x = np.random.uniform(LOWER_BOUND, UPPER_BOUND)
         # y = np.random.uniform(LOWER_BOUND, UPPER_BOUND)
         cur = self.__x0
-        print(cur)
+        # print(cur)
         i , j = 0, 0
         while i < self.__n:
             if j > MAX_DEPTH:
                 print("error, stack outside of the square")
                 result[i] = cur
-                return result
+                j = 0
+                i += 1
+                continue
             r = np.random.normal(0, 1, len(cur))
             # result[round(cur[0]), round(cur[1])] += 1
             m = np.matrix(self.__build_distance_matrix(cur))

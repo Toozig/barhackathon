@@ -1,39 +1,39 @@
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
+# import plotly.express as px
+# import plotly.graph_objects as go
 import pandas as pd
-from ipywidgets import widgets
+# from ipywidgets import widgets
 
-HIGHEST_NUMBER_OF_MOL = 500
-LOWEST_NUM_OF_MOL = 50
+HIGHEST_NUMBER_OF_MOL = 10
+LOWEST_NUM_OF_MOL = 3
 f_amount = 10
 s_amount = 3
 
 
-frame_amount = widgets.IntSlider(
-    value=10,
-    min=1,
-    max=1000,
-    description='Number of frames in each sample:',
-    disabled=False)
-
-samples_amount = widgets.IntSlider(
-    value=3,
-    min=1,
-    max=110,
-    description='Number of samples:',
-    disabled=False)
-
-g = go.FigureWidget(data=[],
-                    layout=go.Layout(
-                        title=dict(
-                            text='NYC FlightDatabase'
-                        ),
-                        barmode='overlay'
-                    ))
-
-
-container = widgets.HBox(children=[samples_amount, frame_amount])
+# frame_amount = widgets.IntSlider(
+#     value=10,
+#     min=1,
+#     max=1000,
+#     description='Number of frames in each sample:',
+#     disabled=False)
+#
+# samples_amount = widgets.IntSlider(
+#     value=3,
+#     min=1,
+#     max=110,
+#     description='Number of samples:',
+#     disabled=False)
+#
+# g = go.FigureWidget(data=[],
+#                     layout=go.Layout(
+#                         title=dict(
+#                             text='NYC FlightDatabase'
+#                         ),
+#                         barmode='overlay'
+#                     ))
+#
+#
+# container = widgets.HBox(children=[samples_amount, frame_amount])
 
 
 def generate_histogram(amount_of_frames:int) -> (list, int):
@@ -66,33 +66,33 @@ def generate_histogram(amount_of_frames:int) -> (list, int):
     return result, num_mol
 
 
-def generate_scatter(change):
-    res = []
-    fig = go.Figure()
-    if frame_amount.value != f_amount:
-        for i in range(frame_amount.value):
-            res, num_mol = generate_histogram(samples_amount.value)
-            res.append(fig.add_trace(go.Scatter(y=res, x=list(range(samples_amount.value)), mode='lines', name='%i molecules' % num_mol, )))
-        f_amount = frame_amount.value
-        with g.batch_update():
-            g.data = res
-
-    elif samples_amount.value < len(g.data):
-        for i in range(samples_amount.value - len(g.data)):
-            res, num_mol = generate_histogram(frame_amount.value)
-            res.append(fig.add_trace(go.Scatter(y=res, x=list(range(frame_amount.value)), mode='lines', name='%i molecules' %num_mol,)))
-
-        with g.batch_update():
-            g.data = list(g.data) + res
-
-    else:
-        with g.batch_update():
-            g.data = g.data[:samples_amount.value]
-
-
+# def generate_scatter(change):
+#     res = []
+#     fig = go.Figure()
+#     if frame_amount.value != f_amount:
+#         for i in range(frame_amount.value):
+#             res, num_mol = generate_histogram(samples_amount.value)
+#             res.append(fig.add_trace(go.Scatter(y=res, x=list(range(samples_amount.value)), mode='lines', name='%i molecules' % num_mol, )))
+#         f_amount = frame_amount.value
+#         with g.batch_update():
+#             g.data = res
+#
+#     elif samples_amount.value < len(g.data):
+#         for i in range(samples_amount.value - len(g.data)):
+#             res, num_mol = generate_histogram(frame_amount.value)
+#             res.append(fig.add_trace(go.Scatter(y=res, x=list(range(frame_amount.value)), mode='lines', name='%i molecules' %num_mol,)))
+#
+#         with g.batch_update():
+#             g.data = list(g.data) + res
+#
+#     else:
+#         with g.batch_update():
+#             g.data = g.data[:samples_amount.value]
 
 
-frame_amount.observe(generate_scatter, names="value")
-samples_amount.observe(generate_histogram, names='value')
-t = widgets.VBox([container])
-y = 45
+
+
+# frame_amount.observe(generate_scatter, names="value")
+# samples_amount.observe(generate_histogram, names='value')
+# t = widgets.VBox([container])
+# y = 45
