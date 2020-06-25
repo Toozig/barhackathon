@@ -6,6 +6,11 @@ import itertools
 
 
 class MCHC:
+
+    PROTEIN_DICT = {0: "CD28", 1: "CD80", 2: "CD86" , 3: "CTLA-4", 4: "PD-1", 5: "PD-L1", 6: "PD-L2", 7: "IL-2RA",
+                    8: "IL-12R", 9: "IL-2", 10: "IL-12", 11: "empty state"}
+
+
     def __init__(self, n, kt, m, protein_vec, dt, compare):
         """
 
@@ -22,6 +27,8 @@ class MCHC:
         self.__protein_vec = protein_vec
         self.__dt = dt
         self.__compare = compare
+        self.__df = pd.read_excel("matrix.xlsx")
+
 
     def is_valid(self, c):
         ''' Return True if c is a valid 2-D coordinate on an n x n grid    with 0-based indices '''
@@ -82,8 +89,12 @@ class MCHC:
 
 
     def __create_configuration_space(self): #todo
-        filtered = 0
-        return filtered
+        configurations = []
+        for protein in range(self.__n):
+            for sec_protein in range(protein, self.__n):
+                if self.__df[protein][sec_protein] == 1:
+                    configurations.append((protein, sec_protein))
+        return configurations
 
 
     def mcmc(self):
@@ -101,14 +112,14 @@ class MCHC:
         return result
 
 
-def findsubsets(s, n):
-    base = list(itertools.combinations(s, n))
-    level = []
-    for pair in base:
-        temp = [i for i in base if i[0] != pair[0] and i[0] != pair[1] and i[1] != pair[0] and i[1] != pair[1]]
-        for j in temp:
-            level.append((pair, j))
-    return level
+# def findsubsets(s, n):
+#     base = list(itertools.combinations(s, n))
+#     level = []
+#     for pair in base:
+#         temp = [i for i in base if i[0] != pair[0] and i[0] != pair[1] and i[1] != pair[0] and i[1] != pair[1]]
+#         for j in temp:
+#             level.append((pair, j))
+#     return level
 
 # def get_cmdline_parser():
 #     parser = argparse.ArgumentParser(
@@ -122,8 +133,9 @@ def findsubsets(s, n):
 #                              ' (Boltzmann constant times temperature)')
 #     return parser
 if __name__ == '__main__':
-    print(findsubsets([1, 2, 3, 4], 2))
+    # print(findsubsets([1, 2, 3, 4], 2))
     # parser = get_cmdline_parser().parse_args()
     # print(mcmc(parser))
+    pass
 
 
