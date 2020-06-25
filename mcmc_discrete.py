@@ -2,18 +2,19 @@ import argparse
 import numpy as np
 import pandas as pd
 from BD import *
-import itertools
+from itertools import chain, combinations
 
 
 class MCHC:
 
     PROTEIN_DICT = {0: "CD28", 1: "CD80", 2: "CD86" , 3: "CTLA-4", 4: "PD-1", 5: "PD-L1", 6: "PD-L2", 7: "IL-2RA",
                     8: "IL-12R", 9: "IL-2", 10: "IL-12", 11: "empty state"}
+    CONVERT_DICT = {"CD28":0, "CD80":1, "CD86":2, "CTLA-4":3,  "PD-1":4, "PD-L1":5, "PD-L2":6, "IL-2RA":7, "IL-12R":8,
+                    "IL-2":9, "IL-12":10, "empty state":11}
 
 
     def __init__(self, n, kt, m, protein_vec, dt, compare):
         """
-
         :param n: proteins number
         :param kt: kT
         :param m: iteration number
@@ -27,7 +28,21 @@ class MCHC:
         self.__protein_vec = protein_vec
         self.__dt = dt
         self.__compare = compare
-        self.__df = pd.read_excel("matrix.xlsx")
+        self.__df, self.__protein_dict = self.__read_excel()
+        self.__space = self.__create_configuration_space()
+        self.mcmc()
+
+
+    def __read_excel(self):
+        df = pd.read_excel("matrix.xlsx")
+        colnames = df.columns
+        col_ind = [colnames.iloc(protein)for protein in self.__protein_vec]
+        filtered = df[col_ind]
+        filtered = filtered.iloc[col_ind]
+        protein_dict = {}
+        for i in range(filtered.shape[0]):
+            protein_dict[i] = filtered.columns[i]
+        return filtered, protein_dict
 
 
     def is_valid(self, c):
@@ -73,35 +88,49 @@ class MCHC:
         res = bd.BD_algorithm()
         return self.__loss(res)
 
-    def __get_neighbours(self, c): #todo
+    def __get_neighbours(self, c):
         ''' get up/down/left/right neighbours on an n x n grid with 0-based indices'''
-        orig = pd.read_excel("matrix.xlsx")
-        ret_value = []
-        if c[0] > 0:
-            ret_value.append((c[0] - 1, c[1]))
-        if c[0] < self.__n - 1:
-            ret_value.append((c[0] + 1, c[1]))
-        if c[1] > 0:
-            ret_value.append((c[0], c[1] - 1))
-        if c[1] < self.__n - 1:
-            ret_value.append((c[0], c[1] + 1))
-        return ret_value
+        temp_mat = np.zeros((self.__n, self.__n))
+        for i in range(self.__dt.shape[0]):
+             # todo : if c is an index
+            temp_mat[i][c] = self.__dt[i][c]
+            temp_mat[c][i] = self.__dt[c][i]
+        return temp_mat
 
 
-    def __create_configuration_space(self): #todo
+    def __create_configuration_space(self):
+        """
+        the function build the configuration space from the given input
+        :return: the configuration space as list
+        """
         configurations = []
-        for protein in range(self.__n):
-            for sec_protein in range(protein, self.__n):
-                if self.__df[protein][sec_protein] == 1:
-                    configurations.append((protein, sec_protein))
-        return configurations
+        i = 0
+        while i < self.__n:
+            if i == 0:
+                configurations.append([11])
+            elif i == 2:
+                temp = []
+                for protein in range(self.__n):
+                    for sec_protein in range(protein, self.__n):
+                        if self.__df[protein][sec_protein] == 1:
+                            temp.append((protein, sec_protein))
+                configurations.append(temp)
+            elif i % 2 == 0:
+                temp2 = []
+                for tup in configurations[-1]:
+                    seen = [].extend(tup)
+                    for pair in configurations[1]:
+                        if pair[0] not in seen and pair[1] not in seen:
+                            temp2.append((tup, pair))
+                configurations.append(temp2)
+        result = (lambda l: [item for sublist in l for item in sublist])(configurations)
+        return result
 
 
     def mcmc(self):
-        configuration = self.__create_configuration_space()
-        result = [0 for i in range(len(configuration))]
+        result = [0 for i in range(len(self.__space))]
         # matrix = [(i, j) for j in range(self.__n) for i in range(self.__n)]
-        random_state = configuration[np.random.randint(len(configuration))]
+        random_state = self.__space[np.random.randint(len(self.__space))]
         for iter in range(self.__m):
             result[random_state] += 1
             neighbours = self.__get_neighbours(random_state)
@@ -110,6 +139,16 @@ class MCHC:
             p = self.__get_p_accept_metropolis(dE, self.__kt, 1 / len(neighbours), 1 / len(self.__get_neighbours(chosen)))
             random_state = chosen if np.random.binomial(1, p) else random_state
         return result
+
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return list(chain.from_iterable(list(combinations(s, r)) for r in range(len(s)+1)))
+
+
+
+
 
 
 # def findsubsets(s, n):
@@ -136,6 +175,20 @@ if __name__ == '__main__':
     # print(findsubsets([1, 2, 3, 4], 2))
     # parser = get_cmdline_parser().parse_args()
     # print(mcmc(parser))
-    pass
+    l = [1,2,3,4]
+    pairs = list(combinations(l, 2))
+    psets = powerset(pairs)
+    valid = []
+    for pset in psets:
+        already_seen = []
+        add = True
+        for pair in pset:
+            if [x for x in pair if x in already_seen]:
+                add = False
+            already_seen.extend(pair)
+
+        if add:
+            valid.append(pset)
+    print(valid)
 
 
