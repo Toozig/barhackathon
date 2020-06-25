@@ -1,78 +1,141 @@
 import argparse
 import numpy as np
+import pandas as pd
+from BD import *
+import itertools
 
 
+class MCHC:
 
-def get_cmdline_parser():
-    parser = argparse.ArgumentParser(
-        description='Run MCMC on a discrete n x n configuration space.')
-    parser.add_argument('n', type=int, default=5, nargs='?',
-                        help='number of rows/columns of grid')
-    parser.add_argument('m', type=int, default=1000, nargs='?',
-                        help='number of iterations of MCMC optimization')
-    parser.add_argument('kT', type=float, default=1.0, nargs='?',
-                        help='kT - the denominator for the metropolis criterion'
-                             ' (Boltzmann constant times temperature)')
-    return parser
+    PROTEIN_DICT = {0: "CD28", 1: "CD80", 2: "CD86" , 3: "CTLA-4", 4: "PD-1", 5: "PD-L1", 6: "PD-L2", 7: "IL-2RA",
+                    8: "IL-12R", 9: "IL-2", 10: "IL-12", 11: "empty state"}
 
 
-def is_valid(c, n):
-    ''' Return True if c is a valid 2-D coordinate on an n x n grid    with 0-based indices '''
-    if len(c) != 2:
-        return False
-    return (c[0] >= 0 and c[1] >= 0 and c[0] < n and c[1] < n)
+    def __init__(self, n, kt, m, protein_vec, dt, compare):
+        """
+
+        :param n: proteins number
+        :param kt: kT
+        :param m: iteration number
+        :param protein_vec: list of proteins
+        :param dt: time interval
+        :param compare: real result for comparision
+        """
+        self.__n = n
+        self.__kt = kt
+        self.__m = m
+        self.__protein_vec = protein_vec
+        self.__dt = dt
+        self.__compare = compare
+        self.__df = pd.read_excel("matrix.xlsx")
 
 
-def get_p_accept_metropolis(dE, kT, p_forward, p_backward):
-    '''    return the probability to accept the metropolis criteria
-        for the specified conditions
-        dE - change in energy from current to proposed configuration
+    def is_valid(self, c):
+        ''' Return True if c is a valid 2-D coordinate on an n x n grid    with 0-based indices '''
+        if len(c) != 2:
+            return False
+        return c[0] >= 0 and c[1] >= 0 and c[0] < self.__n and c[1] < self.__n
+
+    def __get_p_accept_metropolis(self, dE, p_forward, p_backward):
+        '''    return the probability to accept the metropolis criteria
+            for the specified conditions
+            dE - change in energy from current to proposed configuration
             kT - the factor of Boltzmann constant (kB) and the temperature (T)
-                p_forward - probability to propose a move from current to proposed configuration
-                    p_backward - probability to propose a move from proposed to current configuration    '''
-    p = np.exp(-dE / kT) * p_backward / p_forward
-    return min(p, 1.0)
+            p_forward - probability to propose a move from current to proposed configuration
+            p_backward - probability to propose a move from proposed to current configuration    '''
+        p = np.exp(-dE / self.__kt) * p_backward / p_forward
+        return min(p, 1.0)
+
+    def __loss(self, frames):
+        """
+        calculate the loss score of the results from BD simulator
+        :param frames: the result of BD
+        :return: loss score
+        """
+        errors = np.asarray([0 for i in range(len(frames))])
+        for frame in frames:
+            for i in range(len(frame)):
+                for j in range(len(i , frame)):
+                    if np.linalg.norm(frame[i] - frame[j]) < 0.1:   #todo
+                        errors[frame] += 1
+        err = (np.asarray(self.__compare) - errors) / np.asarray(self.__compare)
+        return np.mean(err)
 
 
-def E(c):
-    assert (len(c) == 2)
-    return 1.0 * c[0] + 0.5 * c[1]
+
+    def __E(self, c):
+        """
+        E function that used BD algorithm and calculate the loss of the result
+        :param c: the initial state
+        :return: the loss score
+        """
+        bd = BD(10000, self.__kt,  self.__dt, c, 2)
+        res = bd.BD_algorithm()
+        return self.__loss(res)
+
+    def __get_neighbours(self, c): #todo
+        ''' get up/down/left/right neighbours on an n x n grid with 0-based indices'''
+        orig = pd.read_excel("matrix.xlsx")
+        ret_value = []
+        if c[0] > 0:
+            ret_value.append((c[0] - 1, c[1]))
+        if c[0] < self.__n - 1:
+            ret_value.append((c[0] + 1, c[1]))
+        if c[1] > 0:
+            ret_value.append((c[0], c[1] - 1))
+        if c[1] < self.__n - 1:
+            ret_value.append((c[0], c[1] + 1))
+        return ret_value
 
 
-def get_neighbours(c, n):
-    ''' get up/down/left/right neighbours on an n x n grid with 0-based indices'''
-    assert (is_valid(c, n))
-    ret_value = []
-    if c[0] > 0:
-        ret_value.append((c[0] - 1, c[1]))
-    if c[0] < n - 1:
-        ret_value.append((c[0] + 1, c[1]))
-    if c[1] > 0:
-        ret_value.append((c[0], c[1] - 1))
-    if c[1] < n - 1:
-        ret_value.append((c[0], c[1] + 1))
-    return ret_value
+    def __create_configuration_space(self): #todo
+        configurations = []
+        for protein in range(self.__n):
+            for sec_protein in range(protein, self.__n):
+                if self.__df[protein][sec_protein] == 1:
+                    configurations.append((protein, sec_protein))
+        return configurations
 
 
-# %%
+    def mcmc(self):
+        configuration = self.__create_configuration_space()
+        result = [0 for i in range(len(configuration))]
+        # matrix = [(i, j) for j in range(self.__n) for i in range(self.__n)]
+        random_state = configuration[np.random.randint(len(configuration))]
+        for iter in range(self.__m):
+            result[random_state] += 1
+            neighbours = self.__get_neighbours(random_state)
+            chosen = neighbours[np.random.randint(len(neighbours))]
+            dE = self.__E(chosen) - self.__E(random_state)
+            p = self.__get_p_accept_metropolis(dE, self.__kt, 1 / len(neighbours), 1 / len(self.__get_neighbours(chosen)))
+            random_state = chosen if np.random.binomial(1, p) else random_state
+        return result
 
 
-def mcmc(parser):
-    result = np.zeros((parser.n, parser.n))
-    matrix = [(i, j) for j in range(parser.n) for i in range(parser.n)]
-    random_state = matrix[np.random.randint(parser.n ** 2)]
-    for iter in range(parser.m):
-        result[random_state] += 1
-        neighbours = get_neighbours(random_state, parser.n)
-        chosen = neighbours[np.random.randint(len(neighbours))]
-        dE = E(chosen) - E(random_state)
-        p = get_p_accept_metropolis(dE, parser.kT, 1 / len(neighbours), 1 / len(get_neighbours(chosen, parser.n)))
-        random_state = chosen if np.random.binomial(1, p) else random_state
-    return result
+# def findsubsets(s, n):
+#     base = list(itertools.combinations(s, n))
+#     level = []
+#     for pair in base:
+#         temp = [i for i in base if i[0] != pair[0] and i[0] != pair[1] and i[1] != pair[0] and i[1] != pair[1]]
+#         for j in temp:
+#             level.append((pair, j))
+#     return level
 
-
+# def get_cmdline_parser():
+#     parser = argparse.ArgumentParser(
+#         description='Run MCMC on a discrete n x n configuration space.')
+#     parser.add_argument('n', type=int, default=5, nargs='?',
+#                         help='number of rows/columns of grid')
+#     parser.add_argument('m', type=int, default=1000, nargs='?',
+#                         help='number of iterations of MCMC optimization')
+#     parser.add_argument('kT', type=float, default=1.0, nargs='?',
+#                         help='kT - the denominator for the metropolis criterion'
+#                              ' (Boltzmann constant times temperature)')
+#     return parser
 if __name__ == '__main__':
-    parser = get_cmdline_parser().parse_args()
-    print(mcmc(parser))
+    # print(findsubsets([1, 2, 3, 4], 2))
+    # parser = get_cmdline_parser().parse_args()
+    # print(mcmc(parser))
+    pass
 
 
