@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 import pandas as pd
 import BD
 
@@ -226,5 +226,5 @@ def main():
         BD
     # histogram(0)
 
-
-main()
+if __name__ == '__main__':
+    main()

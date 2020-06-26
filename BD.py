@@ -1,14 +1,11 @@
 import argparse
-import seaborn as sbn
 import matplotlib.pyplot as plt
 import pandas as pd
 
 import numpy as np
 
-# DEFAULT_SHAPE = (5, 5)
 DT = 0.1
 BD_FACTOR = 6
-# FORCE_VEC = np.asarray([-0.1, -0.5])
 UPPER_BOUND = 4.5
 LOWER_BOUND = -0.5
 MAX_DEPTH = 5
@@ -88,6 +85,11 @@ class BD:
         return True
 
     def __build_distance_matrix(self, protein_vec):
+        """
+        A function that gets protein vector and calculate the distances between every two proteins
+        :param protein_vec: a list of all the proteins
+        :return: distance matrix as numpy matrix
+        """
         real_res = []
         for i in range(len(protein_vec)):
             res = []
@@ -128,10 +130,7 @@ class BD:
             for l in range(len(temp)):
                 temp[l][0] += addition[l]
                 temp[l][1] += addition[l]
-            # temp = cur + addition
-
-            # todo : try to write the function again
-            if self.__vec_in_rec(temp, LOWER_BOUND, LOWER_BOUND, 0, UPPER_BOUND, UPPER_BOUND, 0): #todo: decide the rectangle boundaries
+            if self.__vec_in_rec(temp, LOWER_BOUND, LOWER_BOUND, 0, UPPER_BOUND, UPPER_BOUND, 0):
                 cur = temp
                 result[i] = cur
                 i += 1
@@ -164,6 +163,11 @@ class BD:
 
 
     def __calculate_bars(self, frames):
+        """
+        A function that gets the BD results and calculate the high of the fret bars
+        :param frames: matrix of proteins coordinate
+        :return: list which every index represent the light levels
+        """
         errors = np.asarray([0 for i in range(len(frames))])
         dd = []
         for frame in range(len(frames)):
@@ -174,33 +178,8 @@ class BD:
                         continue
                     dist = np.linalg.norm(np.asarray(frames[frame][i]) - np.asarray(frames[frame][j]))
                     d.append(dist)
-                    if dist < 1:  # todo
+                    if dist < 1:
                         errors[frame] += 1
             dd.append(np.mean(d))
         print(np.mean(dd))
         return errors
-
-
-
-# def get_cmdline_parser():
-#     parser = argparse.ArgumentParser(description='Run BD on a n configuration space.')
-#     parser.add_argument('n', type=int, default=1000, nargs='?',
-#                         help='number of iterations of MCMC optimization')
-#     parser.add_argument('kT', type=float, default=1.0, nargs='?',
-#                         help='kT - the denominator for the metropolis criterion'
-#                              ' (Boltzmann constant times temperature)')
-#     return parser
-
-
-if __name__ == '__main__':
-    print("hi")
-    # parser = get_cmdline_parser().parse_args()
-    # plt.figure()
-    # for i in [0.1, 1]:
-    #     result = BD_algorithm(1000000, i)
-    #     print(result)
-    #     sbn.heatmap(result / np.sum(result), annot=True, fmt=".2f", linewidths=.5)
-    #     plt.title("Configuration frequency heatmap for BD algorithm (kT = %.2f)" % i)
-    #     plt.legend("frequency of visits")
-    #     plt.show()
-    #     plt.savefig("BD_alg_kt_%.2f.png" % i)
