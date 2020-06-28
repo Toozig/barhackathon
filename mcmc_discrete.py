@@ -1,8 +1,4 @@
-import argparse
-import numpy as np
-import pandas as pd
 from BD import *
-from itertools import chain, combinations
 from generate_data import *
 
 EMPTY_STATE = 'empty state'

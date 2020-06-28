@@ -1,7 +1,3 @@
-import argparse
-import matplotlib.pyplot as plt
-import pandas as pd
-
 import numpy as np
 
 DT = 0.1
@@ -147,7 +143,6 @@ class BD:
                 y_pro = self.__inx[j]
                 if dist_met[i,j] != 0:
                     x = 1/ dist_met[i,j]
-                    # x = dist_met[i,j]
                 else:
                     x = 0
                 calc = 1 if distance[x_pro][y_pro] else -1
