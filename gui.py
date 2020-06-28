@@ -235,7 +235,7 @@ def histogram(x, best_config):
     plt.title(title)
     # plt.xlabel('Δt')
     plt.xlabel('time')
-    plt.ylabel('luminous intensity')
+    plt.ylabel('fluorescence ')
     plt.xticks(np.arange(0, iterations * dT, dT))
     plt.grid(axis='y', alpha=0.75)
     plt.show()

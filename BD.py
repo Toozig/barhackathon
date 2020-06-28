@@ -107,20 +107,15 @@ class BD:
         """
         result = [0] * self.__n
         result[0] = self.__x0
-        # x = np.random.uniform(LOWER_BOUND, UPPER_BOUND)
-        # y = np.random.uniform(LOWER_BOUND, UPPER_BOUND)
         cur = self.__x0
-        # print(cur)
         i , j = 0, 0
         while i < self.__n:
             if j > MAX_DEPTH:
-                print("error, stack outside of the square")
                 result[i] = cur
                 j = 0
                 i += 1
                 continue
             r = np.random.normal(0, 1, len(cur))
-            # result[round(cur[0]), round(cur[1])] += 1
             m = np.matrix(self.__build_distance_matrix(cur))
             force_vec = self.__force_func(m)
             dt = self.__dt
@@ -181,5 +176,4 @@ class BD:
                     if dist < 1:
                         errors[frame] += 1
             dd.append(np.mean(d))
-        print(np.mean(dd))
         return errors
