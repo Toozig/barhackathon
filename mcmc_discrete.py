@@ -122,6 +122,9 @@ class MCMC:
             seen = [x for y in tup for x in y]
         return seen
 
+    def get_iter(self):
+        return self.__m
+
     def mcmc(self):
         result = [0 for i in range(len(self.__space))]
         random_ind = np.random.randint(len(self.__space))

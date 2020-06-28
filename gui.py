@@ -227,11 +227,12 @@ def MCMCgui(chosen_proteins):
     return window.filename
 
 
-def histogram(x):
+def histogram(x, best_config):
 
     x = pd.Series(x)
     x.plot.hist(grid=True, bins=20, rwidth=0.9, color='#607c8e')
-    plt.title('Simulated Fret results')
+    title = 'Simulated Fret results\n best configuration: ' + str(best_config)
+    plt.title(title)
     # plt.xlabel('Δt')
     plt.xlabel('time')
     plt.ylabel('luminous intensity')
@@ -254,7 +255,9 @@ def read_excel(protein_vec):
     return filtered, protein_dict
 
 
-if __name__ == '__main__':
+
+
+def main():
     """
     The main function that runs the program.
     At first the main gui window is opened, letting the user to choose the program he wants
@@ -262,9 +265,11 @@ if __name__ == '__main__':
     and the user can enter his arguments.
     Finally, an histogram plot is shown, according to the chosen program's output
     """
+    global iterations
     algo = MAINgui()
     chosen_proteins = []
     file_path = ""
+    best_config = ""
     if algo == MCMC:
         run = MCMCgui
     else:
@@ -274,15 +279,19 @@ if __name__ == '__main__':
         file_path = run(chosen_proteins)
     if algo == MCMC:
         vec = pd.read_csv(file_path)
-        mcmc_obj = mcmc.MCMC(len(chosen_proteins), kT, iterations, chosen_proteins,dT, list(vec))
+        mcmc_obj = mcmc.MCMC(len(chosen_proteins), kT, 0, chosen_proteins, dT, list(vec))
         results = mcmc_obj.mcmc()
-        best_config, hist_arr = results[1], results[3]
-        print("Best configurations: ", best_config)
+        best_config, hist_arr = results[1], results[2][1]
+        iterations = 10
     else:
         matrix, idxs = read_excel(chosen_proteins)
         bd_obj = bd.BD(iterations, kT, dT, (0, 0), len(chosen_proteins), idxs, chosen_proteins, matrix)
         hist_arr = bd_obj.BD_algorithm()[1]
-    histogram(hist_arr)
+    histogram(hist_arr, best_config)
+
+
+if __name__ == '__main__':
+    main()
 
 
 
