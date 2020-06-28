@@ -2,9 +2,9 @@ from tkinter import *
 from tkinter import filedialog
 import numpy as np
 import matplotlib.pyplot as plt
-# import seaborn as sns
 import pandas as pd
-import BD
+import BD as bd
+import mcmc_descrete as mcmc
 
 iterations, kT, dT = 0, 0, 0
 all_proteins = ["CD28", "CD80", "CD86", "CTLA-4", "PD-1", "PD-L1", "PD-L2", "IL-2RA", "IL-12R",
@@ -15,12 +15,18 @@ MCMC = 1
 BD = 2
 
 
-def show_proteins(window, check_buttons, boo_chosen_proteins):
+def show_proteins(window, check_buttons, choices_list):
+    """
+    show protein choices in the given window
+    :param window: gui window to update
+    :param check_buttons: empty check buttons list to update
+    :param choices_list: list of boolean variables for the choices of the check buttons
+    """
     proteins_label = Label(window, text="Choose your proteins, and click 'Done':",
                            font=('Calibri bold', 18), background="lavender")
     proteins_label.place(x=300, y=280)
     for i in range(len(all_proteins)):
-        c = Checkbutton(window, text=all_proteins[i], var=boo_chosen_proteins[i],
+        c = Checkbutton(window, text=all_proteins[i], var=choices_list[i],
                         font=('Calibri', 14),
                         background="lavender")
         check_buttons.append(c)
@@ -57,6 +63,9 @@ def show_int_args(window):
 
 
 def init_choices(choices_list):
+    """
+    initialize the given list for the user's choices (through gui window)
+    """
     for i in range(len(all_proteins)):
         x = BooleanVar()
         x.set(False)
@@ -64,6 +73,14 @@ def init_choices(choices_list):
 
 
 def init_window(window, title, text, x, y):
+    """
+    initialize the gui window, with the given parameters
+    :param window: the gui window
+    :param title: title to set
+    :param text: text to write at the top of the window (header)
+    :param x: the position (row) to place the text(title)
+    :param y: the position (column) to place the text(title)
+    """
     window.configure(background="lavender")
     window.geometry("1000x600")
     window.title(title)
@@ -73,6 +90,10 @@ def init_window(window, title, text, x, y):
 
 
 def BDgui(chosen_proteins):
+    """
+    Graphic user interface for running BD algorithm, with the user's inputs
+    :param chosen_proteins: an empty list to be filled with the protein the user chose
+    """
     global isValid
     window = Tk()
     choices_list = []
@@ -106,6 +127,9 @@ def BDgui(chosen_proteins):
 
 
 def MAINgui():
+    """
+    Graphic user interface for running BD or MCMC algorithm, according to the user's choice
+    """
     window = Tk()
     choose_var = IntVar()
     init_window(window, "Main window", "Choose Algorithm", 330, 0)
@@ -132,6 +156,10 @@ def MAINgui():
 
 
 def MCMCgui(chosen_proteins):
+    """
+    Graphic user interface for running MCMC algorithm, with the user's inputs
+    :param chosen_proteins: an empty list to be filled with the protein the user chose
+    """
     global dT
     window = Tk()
     init_window(window, "MCMC algorithm", "Choose your MCMC attributes", 250, 0)
@@ -197,34 +225,64 @@ def histogram(x):
     # plt.show()
     # Generate data on commute times.
     size, scale = 1000, 10
-    commutes = pd.Series(np.random.gamma(scale, size=size) ** 1.5)
-    print(commutes)
-    commutes.plot.hist(grid=True, bins=20, rwidth=0.9,
-                       color='#607c8e')
-    # x = pd.Series(x)
-    # x.plot.hist(grid=True, bins=20, rwidth=0.9, color='#607c8e')
+    # commutes = pd.Series(np.random.gamma(scale, size=size) ** 1.5)
+    # print(commutes)
+    # commutes.plot.hist(grid=True, bins=20, rwidth=0.9,
+    #                    color='#607c8e')
+    x = pd.Series(x)
+    x.plot.hist(grid=True, bins=20, rwidth=0.9, color='#607c8e')
     plt.title('Commute Times for 1,000 Commuters')
-    plt.xlabel('Δt')
-    plt.ylabel('Commute Time')
+    # plt.xlabel('Δt')
+    plt.xlabel('time')
+    plt.ylabel('level')
+    plt.xticks(np.arange(0, iterations * dT, dT))
     plt.grid(axis='y', alpha=0.75)
     plt.show()
 
 
-def main():
-    global isValid
+def read_excel(protein_vec):
+    df = pd.read_csv("newMatrix.csv", index_col=0)
+    filtered = df.loc[protein_vec, protein_vec]
+    # filtered = filtered.iloc[col_ind]
+    filtered['empty state'] = 1
+    protein_dict = {}
+    for i in range(filtered.shape[0] + 1):
+        if i == filtered.shape[0]:
+            protein_dict[i] = 'empty state'
+        else:
+            protein_dict[i] = filtered.columns[i]
+    return filtered, protein_dict
+
+
+if __name__ == '__main__':
+    """
+    The main function that runs the program.
+    At first the main gui window is opened, letting the user to choose the program he wants
+    to run (BD or MCMC). Then, according to the user's choice, the matching window is opened
+    and the user can enter his arguments.
+    Finally, an histogram plot is shown, according to the chosen program's output
+    """
     algo = MAINgui()
+    chosen_proteins = []
+    file_path = ""
     if algo == MCMC:
         run = MCMCgui
     else:
-        run = BD
+        run = BDgui
     while not isValid:
         chosen_proteins = []
         file_path = run(chosen_proteins)
     if algo == MCMC:
-        return
+        vec = pd.read_csv(file_path)
+        mcmc_obj = mcmc.MCMC(len(chosen_proteins), kT, iterations, chosen_proteins,dT, list(vec))
+        results = mcmc_obj.mcmc()
+        best_config, hist_arr = results[1], results[3]
+        print("Best configurations: ", best_config)
     else:
-        BD
-    # histogram(0)
+        matrix, idxs = read_excel(chosen_proteins)
+        bd_obj = bd.BD(iterations, kT, dT, (0, 0), len(chosen_proteins), idxs, chosen_proteins, matrix)
+        hist_arr = bd_obj.BD_algorithm()[1]
+    histogram(hist_arr)
 
-if __name__ == '__main__':
-    main()
+
+
