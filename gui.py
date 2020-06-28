@@ -1,10 +1,11 @@
 from tkinter import *
 from tkinter import filedialog
+from tkinter import messagebox
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import BD as bd
-import mcmc_descrete as mcmc
+import mcmc_discrete as mcmc
 
 iterations, kT, dT = 0, 0, 0
 all_proteins = ["CD28", "CD80", "CD86", "CTLA-4", "PD-1", "PD-L1", "PD-L2", "IL-2RA", "IL-12R",
@@ -46,19 +47,19 @@ def show_int_args(window):
                        background="lavender")
     iter_label.place(x=100, y=100)
     iter_num = Entry(window, bd=2, font=('Calibri', 14), width=6)
-    iter_num.place(x=340, y=100)
+    iter_num.place(x=400, y=100)
 
     kT_label = Label(window, text="Enter kT value: ", font=('Calibri bold', 16),
                      background="lavender")
     kT_label.place(x=100, y=160)
     k = Entry(window, bd=2, font=('Calibri', 14), width=6)
-    k.place(x=240, y=160)
+    k.place(x=300, y=160)
 
     dT_label = Label(window, text="Enter Δt value: ", font=('Calibri bold', 16),
                      background="lavender")
     dT_label.place(x=100, y=220)
     d = Entry(window, bd=2, font=('Calibri', 14), width=6)
-    d.place(x=240, y=220)
+    d.place(x=300, y=220)
     return iter_num, k, d
 
 
@@ -81,6 +82,13 @@ def init_window(window, title, text, x, y):
     :param x: the position (row) to place the text(title)
     :param y: the position (column) to place the text(title)
     """
+    def on_closing():
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            window.destroy()
+            exit(0)
+
+    window.protocol("WM_DELETE_WINDOW", on_closing)
+
     window.configure(background="lavender")
     window.geometry("1000x600")
     window.title(title)
@@ -107,8 +115,8 @@ def BDgui(chosen_proteins):
         global iterations, kT, dT, isValid
         try:
             iterations = int(iter_num.get())
-            kT = int(k.get())
-            dT = int(d.get())
+            kT = float(k.get())
+            dT = float(d.get())
             for i in range(len(choices_list)):
                 if choices_list[i].get():
                     chosen_proteins.append(all_proteins[i])
@@ -177,12 +185,12 @@ def MCMCgui(chosen_proteins):
     file_but = Button(window, text="load file", font=('Calibri', 14),
                       background="thistle3", command=load_file)
     label.place(x=300, y=100)
-    file_but.place(x=557, y=98)
+    file_but.place(x=610, y=98)
     label = Label(window, text="Enter Δt value: ", font=('Calibri bold', 18),
                   background="lavender")
     d = Entry(window, bd=2, font=('Calibri', 14), width=6)
     label.place(x=300, y=200)
-    d.place(x=460, y=205)
+    d.place(x=500, y=205)
     choices_list = []
     init_choices(choices_list)
     check_buttons = []
@@ -192,7 +200,7 @@ def MCMCgui(chosen_proteins):
         global dT, isValid
         try:
             dt_error, file_err = "Invalid Δt value", "Invalid file: must be csv file"
-            dT = int(d.get())
+            dT = float(d.get())
             suffix = ".csv"
             if window.filename == "" or window.filename[-4:] != suffix:
                 raise Exception(file_err)
@@ -220,21 +228,13 @@ def MCMCgui(chosen_proteins):
 
 
 def histogram(x):
-    # sns.set_style('darkgrid')
-    # sns.distplot([1,2,4,5,6])
-    # plt.show()
-    # Generate data on commute times.
-    size, scale = 1000, 10
-    # commutes = pd.Series(np.random.gamma(scale, size=size) ** 1.5)
-    # print(commutes)
-    # commutes.plot.hist(grid=True, bins=20, rwidth=0.9,
-    #                    color='#607c8e')
+
     x = pd.Series(x)
     x.plot.hist(grid=True, bins=20, rwidth=0.9, color='#607c8e')
-    plt.title('Commute Times for 1,000 Commuters')
+    plt.title('Simulated Fret results')
     # plt.xlabel('Δt')
     plt.xlabel('time')
-    plt.ylabel('level')
+    plt.ylabel('luminous intensity')
     plt.xticks(np.arange(0, iterations * dT, dT))
     plt.grid(axis='y', alpha=0.75)
     plt.show()
@@ -283,6 +283,7 @@ if __name__ == '__main__':
         bd_obj = bd.BD(iterations, kT, dT, (0, 0), len(chosen_proteins), idxs, chosen_proteins, matrix)
         hist_arr = bd_obj.BD_algorithm()[1]
     histogram(hist_arr)
+
 
 
 
